@@ -4,17 +4,52 @@ import numpy as np
 
 def main():
 
+    # Physics inputs
+    a = 2 * np.pi
+    # Numerics inputs
     xL = 0
     xR = 1
-    p = 2
+    p = 3
 
+    # Number of basis functions
+    nb = p + 1
     # Create grid of collocation points. There are p + 1 points to define a
     # polynomial, but two points are the end points, which have boundary
     # conditions applied to them instead.
-    num_points = (p + 1) - 2
-    x = np.linspace(xL, xR, 100)
+    # There are as many points as basis functions
+    num_points = nb
+    x = np.linspace(xL, xR, num_points)
 
-    cheb = np.polynomial.chebyshev.Chebyshev([1, 1, 1], domain=[xL, xR])
+    # Matrix to be solved
+    A = np.empty((nb, nb))
+    b = np.zeros((nb, 1))
+    BC_rows = np.empty((2, nb))
+    # Loop basis functions
+    res = []
+    for i in range(nb):
+        coeff = np.zeros(nb)
+        coeff[i] = 1
+        # Get basis function and derivatives
+        phi = np.polynomial.chebyshev.Chebyshev(coeff, domain=[xL, xR])
+        dphi = phi.deriv(1)
+        ddphi = phi.deriv(2)
+        # Get ith mode of residual
+        res.append( ddphi + a**2 * phi )
+
+        # Evaluate residual at points
+        A[:, i] = res[i](x)
+
+        # BCs: try dirichlet
+        BC_rows[0,  i] = phi(x[0])
+        BC_rows[-1, i] = phi(x[-1])
+        b[0] = 1
+        b[-1] = 1
+    # Replace rows of A with the BCs
+    A[0] = BC_rows[0]
+    A[-1] = BC_rows[-1]
+
+    # Solve system
+    xhat = np.linalg.inv(A) @ b
     breakpoint()
 
     # Plot
