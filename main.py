@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import numpy as np
+import sympy as sp
 
 def main():
 
@@ -23,6 +24,16 @@ def main():
     else:
         x = np.linspace(xL, xR, num_points)
 
+    # Some function for temperature
+    thermal_variation = True
+    xs = sp.Symbol('x', real=True)
+    T0_expr = .9 * sp.exp(-200 * (xs - .1)**2) + .1
+    T0_func = sp.lambdify(xs, T0_expr)
+    T0 = T0_func(x)
+    dT0_dx_expr = T0_expr.diff(xs)
+    dT0_dx_func = sp.lambdify(xs, dT0_dx_expr)
+    dT0_dx = dT0_dx_func(x)
+
     # Matrix to be solved
     A = np.empty((nb, nb))
     b = np.zeros((nb, 1))
@@ -37,16 +48,23 @@ def main():
         dphi = phi.deriv(1)
         ddphi = phi.deriv(2)
         # Get ith mode of residual
-        res.append( ddphi + a**2 * phi )
+        res.append(
+                ddphi
+                + thermal_variation * (1/T0) * dT0_dx * dphi
+                # TODO: Add the real terms for a. When a becomes negative (small
+                # wavelengths) the wave is evanescent. This is more pronounced
+                # when the temperature bump is included.
+                + a**2 * phi
+        )
 
         # Evaluate residual at points
         A[:, i] = res[i](x)
 
-        # BCs: try dirichlet
-        BC_rows[0,  i] = phi(x[0])
-        BC_rows[-1, i] = phi(x[-1])
-        b[0] = 0
-        b[-1] = 1
+        # BCs: try Dirichlet left, Neumann right
+        BC_rows[0,  i] = phi(xL)
+        BC_rows[-1, i] = dphi(xR)
+        b[0] = 1
+        b[-1] = 0
     # Replace rows of A with the BCs
     A[0] = BC_rows[0]
     A[-1] = BC_rows[-1]
@@ -63,11 +81,12 @@ def main():
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
     fig = plt.figure(figsize=(5, 5))
-    plt.plot(xd, X, 'k', linewidth=3, label=None)
+    plt.plot(xd, X, 'k', linewidth=3, label='$X$')
+    plt.plot(x, T0, 'k--', linewidth=3, label='$T_0$')
     plt.xlabel('$x$', fontsize=20)
     plt.ylabel('$X$', fontsize=20)
     plt.tick_params(labelsize=16)
-    #plt.legend(loc='center left', fontsize = 20)
+    plt.legend(loc='best', fontsize = 20)
     plt.grid(linestyle='--')
     plt.tight_layout()
     plt.savefig('result.pdf', bbox_inches='tight')
