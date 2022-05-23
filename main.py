@@ -5,20 +5,23 @@ import numpy as np
 def main():
 
     # Physics inputs
-    a = 2 * np.pi
+    a = 2
     # Numerics inputs
     xL = 0
     xR = 1
-    p = 3
+    p = 200
+    use_chebyshev_nodes = True
 
     # Number of basis functions
     nb = p + 1
-    # Create grid of collocation points. There are p + 1 points to define a
-    # polynomial, but two points are the end points, which have boundary
-    # conditions applied to them instead.
-    # There are as many points as basis functions
+    # Create grid of collocation points. Option between using Chebyshev nodes
+    # (the roots of the p + 1 order Chebyshev polynomial) or using equispaced
+    # points (not recommended).
     num_points = nb
-    x = np.linspace(xL, xR, num_points)
+    if use_chebyshev_nodes:
+        x = np.polynomial.chebyshev.Chebyshev([0]*(nb) + [1], domain=[xL, xR]).roots()
+    else:
+        x = np.linspace(xL, xR, num_points)
 
     # Matrix to be solved
     A = np.empty((nb, nb))
@@ -42,7 +45,7 @@ def main():
         # BCs: try dirichlet
         BC_rows[0,  i] = phi(x[0])
         BC_rows[-1, i] = phi(x[-1])
-        b[0] = 1
+        b[0] = 0
         b[-1] = 1
     # Replace rows of A with the BCs
     A[0] = BC_rows[0]
@@ -50,17 +53,21 @@ def main():
 
     # Solve system
     xhat = np.linalg.inv(A) @ b
-    breakpoint()
+
+    # Dense output points
+    num_pts = 100
+    xd = np.linspace(xL, xR, num_pts)
+    X = np.polynomial.chebyshev.Chebyshev(xhat[:, 0], domain=[xL, xR])(xd)
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
-    fig = plt.figure(figsize=(7,7))
-    plt.plot(x, y, 'k', linewidth=3, label='$y=x^2$')
-    plt.xlabel('$x$', fontsize=30)
-    plt.ylabel('$y$', fontsize=30)
-    plt.tick_params(labelsize=20)
-    plt.legend(loc='center left', fontsize = 20)
+    fig = plt.figure(figsize=(5, 5))
+    plt.plot(xd, X, 'k', linewidth=3, label=None)
+    plt.xlabel('$x$', fontsize=20)
+    plt.ylabel('$X$', fontsize=20)
+    plt.tick_params(labelsize=16)
+    #plt.legend(loc='center left', fontsize = 20)
     plt.grid(linestyle='--')
     plt.tight_layout()
     plt.savefig('result.pdf', bbox_inches='tight')
