@@ -6,7 +6,7 @@ import sympy as sp
 def main():
 
     # Physics inputs
-    a = 2
+    lambd2 = 1 - np.pi**2
     # Numerics inputs
     xL = 0
     xR = 1
@@ -25,7 +25,7 @@ def main():
         x = np.linspace(xL, xR, num_points)
 
     # Some function for temperature
-    thermal_variation = True
+    thermal_variation = False
     xs = sp.Symbol('x', real=True)
     T0_expr = .9 * sp.exp(-200 * (xs - .1)**2) + .1
     T0_func = sp.lambdify(xs, T0_expr)
@@ -54,17 +54,17 @@ def main():
                 # TODO: Add the real terms for a. When a becomes negative (small
                 # wavelengths) the wave is evanescent. This is more pronounced
                 # when the temperature bump is included.
-                + a**2 * phi
+                + (1 - lambd2) * phi
         )
 
         # Evaluate residual at points
         A[:, i] = res[i](x)
 
-        # BCs: try Dirichlet left, Neumann right
-        BC_rows[0,  i] = phi(xL)
-        BC_rows[-1, i] = dphi(xR)
-        b[0] = 1
-        b[-1] = 0
+        # BCs: try Neumann left only
+        BC_rows[0,  i] = dphi(xL)
+        b[0] = 0
+        BC_rows[-1,  i] = phi(xR)
+        b[-1] = -.1
     # Replace rows of A with the BCs
     A[0] = BC_rows[0]
     A[-1] = BC_rows[-1]
@@ -82,7 +82,7 @@ def main():
     rc('text', usetex=True)
     fig = plt.figure(figsize=(5, 5))
     plt.plot(xd, X, 'k', linewidth=3, label='$X$')
-    plt.plot(x, T0, 'k--', linewidth=3, label='$T_0$')
+    #plt.plot(x, T0, 'k--', linewidth=3, label='$T_0$')
     plt.xlabel('$x$', fontsize=20)
     plt.ylabel('$X$', fontsize=20)
     plt.tick_params(labelsize=16)
