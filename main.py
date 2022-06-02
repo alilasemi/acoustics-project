@@ -38,36 +38,51 @@ def main():
     A = np.empty((nb, nb))
     b = np.zeros((nb, 1))
     BC_rows = np.empty((2, nb))
+    # Basis values
+    phi = np.empty_like(A)
+    dphi = np.empty_like(A)
+    ddphi = np.empty_like(A)
+    phi_BC = np.empty((2, nb))
+    dphi_BC = np.empty((2, nb))
     # Loop basis functions
     res = []
     for i in range(nb):
         coeff = np.zeros(nb)
         coeff[i] = 1
         # Get basis function and derivatives
-        phi = np.polynomial.chebyshev.Chebyshev(coeff, domain=[xL, xR])
-        dphi = phi.deriv(1)
-        ddphi = phi.deriv(2)
-        # Get ith mode of residual
-        res.append(
-                ddphi
-                + thermal_variation * (1/T0) * dT0_dx * dphi
-                # TODO: Add the real terms for a. When a becomes negative (small
-                # wavelengths) the wave is evanescent. This is more pronounced
-                # when the temperature bump is included.
-                + (1 - lambd2) * phi
-        )
+        poly_phi = np.polynomial.chebyshev.Chebyshev(coeff, domain=[xL, xR])
+        poly_dphi = poly_phi.deriv(1)
+        poly_ddphi = poly_phi.deriv(2)
+        # Evaluate at points
+        phi[:, i] = poly_phi(x)
+        dphi[:, i] = poly_dphi(x)
+        ddphi[:, i] = poly_ddphi(x)
+        # Evaluate at BCs
+        BC_points = np.array([xL, xR])
+        phi_BC[:, i] = poly_phi(BC_points)
+        dphi_BC[:, i] = poly_dphi(BC_points)
 
-        # Evaluate residual at points
-        A[:, i] = res[i](x)
+    # Compute A
+    A = (
+            ddphi
+            + thermal_variation * (1/T0) * dT0_dx * dphi
+            # TODO: Add the real terms for a. When a becomes negative (small
+            # wavelengths) the wave is evanescent. This is more pronounced
+            # when the temperature bump is included.
+            + (1) * phi
+    )
 
-        # BCs: try Neumann left only
-        BC_rows[0,  i] = dphi(xL)
-        b[0] = 0
-        BC_rows[-1,  i] = phi(xR)
-        b[-1] = -.1
-    # Replace rows of A with the BCs
-    A[0] = BC_rows[0]
-    A[-1] = BC_rows[-1]
+    # BCs: try Neumann left only
+    A[0] = dphi_BC[0]
+    b[0] = 0
+    A[-1] = dphi_BC[-1]
+    b[-1] = 0
+    breakpoint()
+
+    # Get eigenvalues and right eigenvectors (in columns)
+    eigvals, eigvecs = np.linalg.eig(A)
+    lambd = np.sqrt(np.sqrt(eigvals))
+    #breakpoint()
 
     # Solve system
     xhat = np.linalg.inv(A) @ b
@@ -79,7 +94,7 @@ def main():
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
-    rc('text', usetex=True)
+    rc('text', usetex=False)
     fig = plt.figure(figsize=(5, 5))
     plt.plot(xd, X, 'k', linewidth=3, label='$X$')
     #plt.plot(x, T0, 'k--', linewidth=3, label='$T_0$')
