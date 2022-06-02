@@ -10,13 +10,13 @@ R = 287             # Gas constant (given for air)
 radius = 1          # Radius of tube
 xL = 0              # Position of left end of tube
 xR = 1              # Position of right end of tube
-p = 40              # Polynomial order of spectral method
+p = 50              # Polynomial order of spectral method
 max_n_r = 5         # Radial mode number
 max_n_theta = 5     # Angular mode number
 nb = p + 1          # Number of basis functions
 T_ambient = 300     # Temperature of ambient fluid
 T_bump_max = 4000   # Maximum temperature of the peak of the Gaussian bump
-n_T = 20            # Number of temperatures between 0 and T_bump_max
+n_T = 5             # Number of temperatures between 0 and T_bump_max
 
 def main():
 
@@ -65,8 +65,8 @@ def main():
     # Plot the base state temperature profile for the lowest and highest
     # temperature cases
     fig = plt.figure(figsize=(5, 5))
-    plt.plot(x, T0_list[0], 'k--', linewidth=3, label=f'$T_0$, Ambient')
-    plt.plot(x, T0_list[-1], 'k', linewidth=3, label=f'$T_0$, Max Heating')
+    for i in range(n_T):
+        plt.plot(x, T0_list[i], 'k', linewidth=3, label=f'$T_\\textrm{peak} = {T_bump[i]}$ K')
     plt.xlabel('$x$', fontsize=20)
     plt.ylabel('$T_0$', fontsize=20)
     plt.tick_params(labelsize=16)
