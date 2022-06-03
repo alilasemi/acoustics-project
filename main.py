@@ -94,7 +94,7 @@ def main():
     # Plot the minimum cutoff frequency for each temperature case
     fig = plt.figure(figsize=(5, 5))
     plt.plot(T_bump, min_cutoff, 'k', linewidth=3, label=None)
-    plt.xlabel('$T_0$ (K)', fontsize=20)
+    plt.xlabel('$T_\\textrm{peak}$ (K)', fontsize=20)
     plt.ylabel('$\\omega_\\textrm{cutoff}$ (Hz)', fontsize=20)
     plt.tick_params(labelsize=16)
     #plt.legend(loc='best', fontsize = 20)
